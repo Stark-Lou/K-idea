@@ -18,5 +18,11 @@
                 <param name="root">result</param>
             </result>
         </action>
+        <action name="getKLineGraphInPage" class="whu.action.OneAction"
+                method="getKLineGraphInPage">
+            <result type="json">
+                <param name="root">result</param>
+            </result>
+        </action>
     </package>
 </struts>

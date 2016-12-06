@@ -24,7 +24,6 @@ public class AlgImp {
             }
 
             float fra = (float) (Math.pow(fraA,0.5) * Math.pow(fraB,0.5));
-            System.out.println("den:" + den +";fra:"+fra);
             if(fra != 0)
                 result = den/fra;
         }

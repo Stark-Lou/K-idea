@@ -51,8 +51,8 @@
     </div>
     <nav>
         <ul class="pager">
-            <li><a href="#">&larr; 上一页</a></li>
-            <li><a href="#">下一页 &rarr;</a></li>
+            <li><a href="#" onclick="prePage()">&larr; 上一页</a></li>
+            <li><a href="#" onclick="nextPage()">下一页 &rarr;</a></li>
         </ul>
     </nav>
 
@@ -169,7 +169,7 @@
 <script src="js/echarts.js"></script>
 <script type="text/javascript">
     var total = 0;
-    var page = 0;
+    var page = 1;
     //算法权重
     var algorithmWeight = "";
     //对比内容
@@ -182,7 +182,6 @@
         algorithmWeight="";
         contrastContent="";
         targetFile = document.getElementById("fileNameInput").value;
-//        alert($("#algorithmInput1").val() > 0);
         var algorithmInput = document.getElementsByName('algorithmInput');
         for(var i=0; i<algorithmInput.length; i++){
             if(algorithmInput.item(i).valueAsNumber > 0)
@@ -247,6 +246,8 @@
             ||contrastContent == undefined || contrastContent== ""){
             alert("部分参数未设置!将执行默认运算！");
         }
+        //从这个方法中触发的代表重新计算
+        page = 1;
         $.ajax({
             method : 'POST',
             url : "getKLineGraph",
@@ -254,12 +255,37 @@
                 algorithmWeight: algorithmWeight,
                 targetFile: targetFile,
                 contrastContent: contrastContent,
-                page : page,
             },
             success : init,
             dataType : "json"
         });
     };
+    function nextPage(){
+        page++;
+        $.ajax({
+            method : 'POST',
+            url : "getKLineGraphInPage",
+            data : {
+                page : page,
+            },
+            success : init,
+            dataType : "json"
+        });
+    }
+    function prePage(){
+        page--;
+        if(page > 0){
+            $.ajax({
+                method : 'POST',
+                url : "getKLineGraphInPage",
+                data : {
+                    page : page,
+                },
+                success : init,
+                dataType : "json"
+            });
+        }
+    }
     function init(json){
 
         total = json.total;
@@ -294,7 +320,6 @@
                         }
                     }
                 },
-
                 grid: [
                     {
                         left: '10%',

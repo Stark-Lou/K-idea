@@ -2,6 +2,7 @@ package whu.action;
 
 import net.sf.json.JSONObject;
 import whu.entity.KLineGraph;
+import whu.entity.SystemInfo;
 import whu.tool.ReadText;
 
 import java.io.File;
@@ -28,22 +29,24 @@ public class OneAction {
      */
     public String getKLineGraphJSON(){
         System.out.println(algorithmWeight +";"+targetFile+","+contrastContent);
-        int intPage = Integer.parseInt((page == null || page.equals("0")) ? "1"
-                : page);
-        int number = Integer.parseInt((rows == null || rows.equals("0")) ? "7"
-                : rows);
         List<File> files = getAllFile(DATA_PATH);
         int total = files.size();
-        int first = (intPage - 1) * number;
-        int max = intPage * number < total ? number : total;
         List<KLineGraph> list = new ArrayList<>();
+        ReadText readText = new ReadText(DATA_PATH + targetFile);
+        int targetId = 600004;
+        try {
+            KLineGraph targetK = readText.read();
+            targetId = targetK.getId();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         int targetIdx = 0;
         for(int i=0;i<total;i++){
-            ReadText readText = new ReadText(files.get(first + i).getAbsolutePath());
+            readText = new ReadText(files.get(i).getAbsolutePath());
             try {
                 KLineGraph k = readText.read();
                 //以白云机场为测试用例
-                if(k.getId() == 600004){
+                if(k.getId() == targetId){
                     targetIdx = i;
                 }
                 list.add(k);
@@ -56,10 +59,29 @@ public class OneAction {
                 ,algorithmWeight,contrastContent));
         }
         KLineGraph.sortBySimilarity(list);
+        SystemInfo.setList(list);
         List<KLineGraph> newList = list.subList(0,6);
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put("total", total);
         jsonMap.put("rows", newList);
+        result = JSONObject.fromObject(jsonMap);
+        return "success";
+    }
+
+    public String getKLineGraphInPage(){
+        int intPage = Integer.parseInt((page == null || page.equals("0")) ? "1"
+                : page);
+        int number = Integer.parseInt((rows == null || rows.equals("0")) ? "6"
+                : rows);
+        List<KLineGraph> list = SystemInfo.getList();
+        Map<String, Object> jsonMap = new HashMap<>();
+        if(list != null){
+            int total = list.size();
+            int first = (intPage - 1) * number;
+            int max = intPage * number < total ? number : total;
+            jsonMap.put("total", total);
+            jsonMap.put("rows", list.subList(first,first+max));
+        }
         result = JSONObject.fromObject(jsonMap);
         return "success";
     }
