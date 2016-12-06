@@ -1,6 +1,10 @@
 package whu.entity;
 
 import whu.tool.AlgImp;
+import whu.ts.math.filter.ExponentialMovingAverageFilter;
+import whu.ts.math.filter.MovingAverageFilter;
+import whu.ts.math.ml.distance.DynamicTimeWarpingDistance;
+import whu.ts.math.normalization.MinMaxNormalizer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,10 +53,16 @@ public class KLineGraph {
         int a_idx = 0;  //记录listA的位置
         int count = 0;
         float sumED = 0;    //欧式距离总和
+        //#####余弦相似度算法相关变量#####//
         float sumCS = 0;    //余弦相似度总和
         SingleDayKLine aPre = null;
         SingleDayKLine bPre = null;   //记录前一个操作内容，用于生成余弦向量
+        //#####第三个算法相关变量#####//
+        float sumTrd = 0;
+        ArrayList<Double> aAlg_3 = new ArrayList<>();
+        ArrayList<Double> bAlg_3 = new ArrayList<>();
         for(SingleDayKLine sdk:listB){
+
             //当listA遍历完成则跳过循环
             if(a_idx >= listA.size())
                 break;
@@ -68,7 +78,7 @@ public class KLineGraph {
                 //如果B中目标时间小于A当前目标时间，则跳过当前目标
                 if (bDate < aDate) break;
             }
-            //然后进行距离计算
+            //距离计算
             if(algWeight[0] > 0)
                 sumED += Math.abs((sdk.getOpen() - listA.get(a_idx).getOpen() * radio) * conContents[0])
                         + Math.abs((sdk.getClose() - listA.get(a_idx).getClose() * radio) * conContents[1])
@@ -79,13 +89,38 @@ public class KLineGraph {
             if(algWeight[1] > 0 && aPre != null && bPre != null) {
                 sumCS += getSumCS(conContents, 1, aPre, listA.get(a_idx), bPre, sdk);
             }
+            //第三个算法
+            if(algWeight[2] > 0) {
+                aAlg_3.add((double) (listA.get(a_idx).getOpen() * radio));
+                bAlg_3.add((double) sdk.getOpen());
+            }
             count ++;
             aPre = listA.get(a_idx);
             bPre = sdk;
         }
+        if(aAlg_3.size()>0){
+//            MovingAverageFilter ma = new MovingAverageFilter(2);
+            ExponentialMovingAverageFilter ma = new ExponentialMovingAverageFilter(0.1);
+            double[] v1 = new double[aAlg_3.size()];
+            double[] v2 = new double[aAlg_3.size()];
+            for(int i=0;i<aAlg_3.size();i++){
+                v1[i] = aAlg_3.get(i);
+                v2[i] = bAlg_3.get(i);
+            }
+            v1 = ma.filter(v1);
+            v2 = ma.filter(v2);
+            double tolerance = 0.05; //5%
+            MinMaxNormalizer normalizer = new MinMaxNormalizer();
+            DynamicTimeWarpingDistance dtw = new DynamicTimeWarpingDistance(tolerance, normalizer);
+            if(v1.length > 3) {
+                sumTrd = (float) dtw.compute(v1, v2) ;
+                System.out.println("sumTrd:" + sumTrd);
+            }else
+                sumTrd = 100;
+        }
         if(count == 0)
             return 100;
-        return (sumED * algWeight[0] + sumCS * algWeight[1])/(algWeight[0] + algWeight[1] + algWeight[2]) /count;
+        return (sumED * algWeight[0] + sumCS * algWeight[1] + sumTrd * algWeight[2])/(algWeight[0] + algWeight[1] + algWeight[2]) /count;
     }
 
     /**

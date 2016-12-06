@@ -269,6 +269,9 @@
                 page : page,
             },
             success : init,
+            error: function () {
+                page--;
+            },
             dataType : "json"
         });
     }
@@ -282,6 +285,9 @@
                     page : page,
                 },
                 success : init,
+                error: function () {
+                    page++;
+                },
                 dataType : "json"
             });
         }
@@ -409,10 +415,10 @@
                                 var param = param[0];
                                 return [
                                     'Date: ' + param.name + '<hr size=1 style="margin: 3px 0">',
-                                    'Open: ' + param.data[0] + '<br/>',
-                                    'Close: ' + param.data[1] + '<br/>',
-                                    'Lowest: ' + param.data[2] + '<br/>',
-                                    'Highest: ' + param.data[3] + '<br/>'
+                                    '开盘: ' + param.data[0] + '<br/>',
+                                    '收盘: ' + param.data[1] + '<br/>',
+                                    '最低: ' + param.data[2] + '<br/>',
+                                    '最高: ' + param.data[3] + '<br/>'
                                 ].join('');
                             }
                         }

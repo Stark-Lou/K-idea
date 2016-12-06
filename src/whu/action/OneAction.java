@@ -33,7 +33,7 @@ public class OneAction {
         int total = files.size();
         List<KLineGraph> list = new ArrayList<>();
         ReadText readText = new ReadText(DATA_PATH + targetFile);
-        int targetId = 600004;
+        int targetId = 600004;//默认以白云机场为测试用例
         try {
             KLineGraph targetK = readText.read();
             targetId = targetK.getId();
@@ -45,7 +45,7 @@ public class OneAction {
             readText = new ReadText(files.get(i).getAbsolutePath());
             try {
                 KLineGraph k = readText.read();
-                //以白云机场为测试用例
+
                 if(k.getId() == targetId){
                     targetIdx = i;
                 }
