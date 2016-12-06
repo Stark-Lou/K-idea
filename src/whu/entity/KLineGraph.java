@@ -67,13 +67,15 @@ public class KLineGraph {
                 if (bDate < aDate) break;
             }
             //然后进行距离计算
-            sumED += Math.abs((sdk.getOpen() - listA.get(a_idx).getOpen() * radio) * conContents[0])
-                    + Math.abs((sdk.getClose() - listA.get(a_idx).getClose() * radio) * conContents[1])
-                    + Math.abs((sdk.getVolume() - listA.get(a_idx).getVolume()) * conContents[2])
-                    + Math.abs((sdk.getHighest() - listA.get(a_idx).getHighest() * radio) * conContents[3])
-                    + Math.abs((sdk.getLowest() - listA.get(a_idx).getLowest() * radio) * conContents[4]);
+            if(algWeight[0] > 0)
+                sumED += Math.abs((sdk.getOpen() - listA.get(a_idx).getOpen() * radio) * conContents[0])
+                        + Math.abs((sdk.getClose() - listA.get(a_idx).getClose() * radio) * conContents[1])
+                        + Math.abs((sdk.getVolume() - listA.get(a_idx).getVolume()) * conContents[2])
+                        + Math.abs((sdk.getHighest() - listA.get(a_idx).getHighest() * radio) * conContents[3])
+                        + Math.abs((sdk.getLowest() - listA.get(a_idx).getLowest() * radio) * conContents[4]);
             //余弦相似度计算
-            sumCS += getSumCS(conContents, radio, listA.get(a_idx), sdk);
+            if(algWeight[1]>0)
+                sumCS += getSumCS(conContents, radio, listA.get(a_idx), sdk);
             count ++;
         }
         if(count == 0)
