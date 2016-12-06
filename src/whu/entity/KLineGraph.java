@@ -45,11 +45,13 @@ public class KLineGraph {
         for (Object[] o : b.content) {
             listB.add(SingleDayKLine.fromObjectArr(o));
         }
-        //TODO 截取相同的时间段进行比较，现在挑选的数据时间段完全一致
+        //截取相同的时间段进行比较
         int a_idx = 0;  //记录listA的位置
         int count = 0;
         float sumED = 0;    //欧式距离总和
         float sumCS = 0;    //余弦相似度总和
+        SingleDayKLine aPre = null;
+        SingleDayKLine bPre = null;   //记录前一个操作内容，用于生成余弦向量
         for(SingleDayKLine sdk:listB){
             //当listA遍历完成则跳过循环
             if(a_idx >= listA.size())
@@ -74,9 +76,12 @@ public class KLineGraph {
                         + Math.abs((sdk.getHighest() - listA.get(a_idx).getHighest() * radio) * conContents[3])
                         + Math.abs((sdk.getLowest() - listA.get(a_idx).getLowest() * radio) * conContents[4]);
             //余弦相似度计算
-            if(algWeight[1]>0)
-                sumCS += getSumCS(conContents, radio, listA.get(a_idx), sdk);
+            if(algWeight[1] > 0 && aPre != null && bPre != null) {
+                sumCS += getSumCS(conContents, 1, aPre, listA.get(a_idx), bPre, sdk);
+            }
             count ++;
+            aPre = listA.get(a_idx);
+            bPre = sdk;
         }
         if(count == 0)
             return 100;
@@ -90,29 +95,30 @@ public class KLineGraph {
      * @param sdk
      * @return
      */
-    private static float getSumCS(int[] conContents,float radio, SingleDayKLine a, SingleDayKLine sdk) {
+    private static float getSumCS(int[] conContents,float radio,SingleDayKLine aPre, SingleDayKLine a,
+                                  SingleDayKLine bPre, SingleDayKLine sdk) {
         float[] sdkFs = {0,0,0,0,0};
         float[] aFs = {0,0,0,0,0};
         float result = 0;
         if(conContents[0] > 0){
-            sdkFs[0] = sdk.getOpen();
-            aFs[0] = a.getOpen() * radio;
+            sdkFs[0] = sdk.getOpen() - bPre.getOpen();
+            aFs[0] = (a.getOpen() - aPre.getOpen()) * radio;
         }
         if(conContents[1] > 0){
-            sdkFs[1] = sdk.getClose();
-            aFs[1] = a.getClose() * radio;
+            sdkFs[1] = sdk.getClose() - bPre.getClose();
+            aFs[1] = (a.getClose() - aPre.getClose()) * radio;
         }
         if(conContents[2] > 0){
-            sdkFs[2] = sdk.getVolume();
-            aFs[2] = a.getVolume();
+            sdkFs[2] = sdk.getVolume() - bPre.getVolume();
+            aFs[2] = a.getVolume() - a.getVolume();
         }
         if(conContents[3] > 0){
-            sdkFs[3] = sdk.getHighest();
-            aFs[3] = a.getHighest() * radio;
+            sdkFs[3] = sdk.getHighest() - bPre.getHighest();
+            aFs[3] = (a.getClose() - aPre.getHighest()) * radio;
         }
         if(conContents[4] > 0){
-            sdkFs[4] = sdk.getLowest();
-            aFs[4] = a.getLowest() * radio;
+            sdkFs[4] = sdk.getLowest() - bPre.getLowest();
+            aFs[4] = (a.getLowest() - aPre.getLowest()) * radio;
         }
         try {
             result = AlgImp.calCosineSimilarity(sdkFs,aFs);
