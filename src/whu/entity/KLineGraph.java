@@ -3,11 +3,11 @@ package whu.entity;
 import whu.tool.AlgImp;
 import whu.ts.math.filter.ExponentialMovingAverageFilter;
 import whu.ts.math.filter.MovingAverageFilter;
+import whu.ts.math.ml.distance.ComplexityInvariantDistance;
 import whu.ts.math.ml.distance.DynamicTimeWarpingDistance;
 import whu.ts.math.normalization.MinMaxNormalizer;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,13 +62,13 @@ public class KLineGraph {
         ArrayList<Double> aAlg_3 = new ArrayList<>();
         ArrayList<Double> bAlg_3 = new ArrayList<>();
         for(SingleDayKLine sdk:listB){
-
             //当listA遍历完成则跳过循环
             if(a_idx >= listA.size())
                 break;
             //找到同一日期的数据进行比较
             int aDate = Integer.valueOf(listA.get(a_idx).getDate().replaceAll("/",""));
             int bDate = Integer.valueOf(sdk.getDate().replaceAll("/",""));
+
             if(aDate != bDate){
                 //如果B中目标日期大于A当前目标的日期，而且A没有超出下标范围
                 while(bDate > aDate && a_idx<listA.size() - 1){
@@ -76,20 +76,18 @@ public class KLineGraph {
                     aDate = Integer.valueOf(listA.get(a_idx).getDate().replaceAll("/",""));
                 }
                 //如果B中目标时间小于A当前目标时间，则跳过当前目标
-                if (bDate < aDate) break;
+                if (bDate < aDate) {
+                    continue;
+                }
             }
             //距离计算
             if(algWeight[0] > 0)
-                sumED += Math.abs((sdk.getOpen() - listA.get(a_idx).getOpen() * radio) * conContents[0])
-                        + Math.abs((sdk.getClose() - listA.get(a_idx).getClose() * radio) * conContents[1])
-                        + Math.abs((sdk.getVolume() - listA.get(a_idx).getVolume()) * conContents[2])
-                        + Math.abs((sdk.getHighest() - listA.get(a_idx).getHighest() * radio) * conContents[3])
-                        + Math.abs((sdk.getLowest() - listA.get(a_idx).getLowest() * radio) * conContents[4]);
+                sumED += calSumEd(sdk,listA.get(a_idx),radio,conContents);;
             //余弦相似度计算
             if(algWeight[1] > 0 && aPre != null && bPre != null) {
-                sumCS += getSumCS(conContents, 1, aPre, listA.get(a_idx), bPre, sdk);
+                sumCS += getSumCS(conContents, radio, aPre, listA.get(a_idx), bPre, sdk);
             }
-            //第三个算法
+            //动态时间规划算法
             if(algWeight[2] > 0) {
                 aAlg_3.add((double) (listA.get(a_idx).getOpen() * radio));
                 bAlg_3.add((double) sdk.getOpen());
@@ -98,29 +96,55 @@ public class KLineGraph {
             aPre = listA.get(a_idx);
             bPre = sdk;
         }
+        System.out.println("count:" + count);
         if(aAlg_3.size()>0){
-//            MovingAverageFilter ma = new MovingAverageFilter(2);
-            ExponentialMovingAverageFilter ma = new ExponentialMovingAverageFilter(0.1);
-            double[] v1 = new double[aAlg_3.size()];
-            double[] v2 = new double[aAlg_3.size()];
-            for(int i=0;i<aAlg_3.size();i++){
-                v1[i] = aAlg_3.get(i);
-                v2[i] = bAlg_3.get(i);
-            }
-            v1 = ma.filter(v1);
-            v2 = ma.filter(v2);
-            double tolerance = 0.05; //5%
-            MinMaxNormalizer normalizer = new MinMaxNormalizer();
-            DynamicTimeWarpingDistance dtw = new DynamicTimeWarpingDistance(tolerance, normalizer);
-            if(v1.length > 3) {
-                sumTrd = (float) dtw.compute(v1, v2) ;
-                System.out.println("sumTrd:" + sumTrd);
-            }else
-                sumTrd = 100;
+            sumTrd = getSumTrd(aAlg_3, bAlg_3);
         }
         if(count == 0)
             return 100;
-        return (sumED * algWeight[0] + sumCS * algWeight[1] + sumTrd * algWeight[2])/(algWeight[0] + algWeight[1] + algWeight[2]) /count;
+        return (float) ((Math.sqrt(sumED) * algWeight[0] + sumCS * algWeight[1] + sumTrd * algWeight[2])
+                /(algWeight[0] + algWeight[1] + algWeight[2]) /count);
+    }
+
+    /**
+     * 计算欧式距离的内部，即差的平方和
+     * @param a
+     * @param b
+     * @param radio
+     * @param conContents
+     * @return
+     */
+    private static float calSumEd(SingleDayKLine a,SingleDayKLine b,float radio,int[] conContents){
+        return (float) (Math.pow(((a.getOpen() - b.getOpen() * radio) * conContents[0]),2)
+                        + Math.pow(((a.getClose() - b.getClose() * radio) * conContents[1]),2)
+                        + Math.pow(((a.getVolume() - b.getVolume()) * conContents[2]),2)
+                        + Math.pow(((a.getHighest() - b.getHighest() * radio) * conContents[3]),2)
+                        + Math.pow(((a.getLowest() - b.getLowest() * radio) * conContents[4]),2));
+    }
+
+    private static float getSumTrd(ArrayList<Double> aAlg_3, ArrayList<Double> bAlg_3) {
+        float sumTrd;
+        MovingAverageFilter ma = new MovingAverageFilter(5);
+//        ExponentialMovingAverageFilter ma = new ExponentialMovingAverageFilter(0.1);
+        double[] v1 = new double[aAlg_3.size()];
+        double[] v2 = new double[aAlg_3.size()];
+        for(int i=0;i<aAlg_3.size();i++){
+            v1[i] = aAlg_3.get(i);
+            v2[i] = bAlg_3.get(i);
+        }
+        v1 = ma.filter(v1);
+        v2 = ma.filter(v2);
+        double tolerance = 0.05; //5%
+        MinMaxNormalizer normalizer = new MinMaxNormalizer();
+
+        DynamicTimeWarpingDistance dtw = new DynamicTimeWarpingDistance(tolerance, normalizer);
+        ComplexityInvariantDistance cid = new ComplexityInvariantDistance(dtw);
+        if(v1.length > 3) {
+//                sumTrd = (float) dtw.compute(v1, v2) ;    //直接动态时间规整
+            sumTrd = (float) cid.compute(v1, v2) ;  //complexity-invariant distance measure
+        }else
+            sumTrd = 100;
+        return sumTrd;
     }
 
     /**

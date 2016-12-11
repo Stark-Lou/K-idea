@@ -5,8 +5,7 @@ import whu.entity.KLineGraph;
 import whu.entity.SystemInfo;
 import whu.tool.ReadText;
 
-import java.io.File;
-import java.io.FilenameFilter;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -54,12 +53,22 @@ public class OneAction {
                 e.printStackTrace();
             }
         }
+        KLineGraph target = list.get(targetIdx);
         for(KLineGraph k:list){
-            k.setSimilarity(100 - KLineGraph.calculateSimilarity(k,list.get(targetIdx)
+            k.setSimilarity(100 - KLineGraph.calculateSimilarity(k,target
                 ,algorithmWeight,contrastContent));
         }
         KLineGraph.sortBySimilarity(list);
         SystemInfo.setList(list);
+        String content = target.getName() + " " + target.getId() + "\r\n";
+        for(KLineGraph k:list){
+            content += k.getId() +" " + k.getName() +" " + k.getSimilarity() + "\r\n";
+        }
+        try {
+            resultToTxt(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         List<KLineGraph> newList = list.subList(0,6);
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put("total", total);
@@ -129,6 +138,24 @@ public class OneAction {
             }
         }
         return fileList;
+    }
+
+    public static void resultToTxt(String content) throws IOException {
+
+        String filePath = "D:\\Homework\\ResultRead_1.txt";
+        int i = 1;
+        File file = new File(filePath);
+        //避免覆盖文件
+        while(file.exists()) {
+            file = new File("D:\\Homework\\ResultRead_"+i+".txt");
+            i++;
+        }
+        file.createNewFile();
+        BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+        Date date = new Date();
+        System.out.println("writing to file:" + file.getAbsolutePath());
+        bw.write(date.toString() + "\r\n" + content);
+        bw.close();
     }
 
     public String getAlgorithmWeight() {

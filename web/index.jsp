@@ -83,7 +83,7 @@
                                     <div class="col-md-4 line">
                                         <div class="input-group input-group-lg">
                                             <span class="input-group-addon">
-                                                <span class="glyphicon glyphicon-stats"></span>某某算法
+                                                <span class="glyphicon glyphicon-stats"></span>余弦相似度
                                             </span>
                                             <input type="number" class="form-control" name="algorithmInput" id="algorithmInput2" placeholder="权重">
                                         </div>
@@ -91,7 +91,7 @@
                                     <div class="col-md-4 line">
                                         <div class="input-group input-group-lg">
                                             <span class="input-group-addon">
-                                                <span class="glyphicon glyphicon-stats"></span>某某算法
+                                                <span class="glyphicon glyphicon-stats"></span>动态时间规整
                                             </span>
                                             <input type="number" class="form-control" name="algorithmInput" id="algorithmInput3" placeholder="权重">
                                         </div>
